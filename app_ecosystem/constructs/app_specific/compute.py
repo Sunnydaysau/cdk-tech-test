@@ -49,6 +49,10 @@ class AppSpecificComputeConstruct(Construct):
                     image=ecs.ContainerImage.from_registry(c["docker_image"]),
                     logging=ecs.LogDrivers.aws_logs(stream_prefix=self.app_config["name"]),
                     port_mappings=[ecs.PortMapping(container_port=next_port)],
+                    environment={
+                        "VALKEY_HOST": common_infra.storage.valkey_endpoint_address,
+                        "VALKEY_PORT": common_infra.storage.valkey_endpoint_port,
+                    },
                     secrets=(
                         {
                             "DB_CREDS": ecs.Secret.from_secrets_manager(
@@ -72,6 +76,10 @@ class AppSpecificComputeConstruct(Construct):
                 ),
                 logging=ecs.LogDrivers.aws_logs(stream_prefix=self.app_config["name"]),
                 port_mappings=[ecs.PortMapping(container_port=self.primary_port)],
+                environment={
+                        "VALKEY_HOST": common_infra.storage.valkey_endpoint_address,
+                        "VALKEY_PORT": common_infra.storage.valkey_endpoint_port,
+                    },
                 secrets={
                     "DB_CREDS": ecs.Secret.from_secrets_manager(
                         common_infra.storage.db_creds_secret
