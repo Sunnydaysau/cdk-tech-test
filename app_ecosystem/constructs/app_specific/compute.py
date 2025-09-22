@@ -20,6 +20,13 @@ class AppSpecificComputeConstruct(Construct):
 
         self.app_config = app_config
 
+        self.app_config = app_config
+
+       
+        self.primary_port = common_infra.networking.ecs_task_port
+        self.primary_container_name = None
+
+       
         self.ecs_task_definition = ecs.FargateTaskDefinition(
             self,
             f"{self.app_config['name'].title()}ECSTaskDefinition",
@@ -27,22 +34,52 @@ class AppSpecificComputeConstruct(Construct):
             cpu=self.app_config["total_task_cpu"],
         )
 
-        self.ecs_task_definition.add_container(
-            f"{self.app_config['name'].title()}ECSTaskContainer",
-            image=ecs.ContainerImage.from_registry(
-                self.app_config["backend_docker_image"]
-            ),
-            logging=ecs.LogDrivers.aws_logs(stream_prefix=self.app_config["name"]),
-            port_mappings=[
-                ecs.PortMapping(container_port=common_infra.networking.ecs_task_port)
-            ],
-            secrets={
-                "DB_CREDS": ecs.Secret.from_secrets_manager(
-                    common_infra.storage.db_creds_secret  # Creds to allow app backends to access RDS cluster
-                ),
-            },
-        )
+        containers_cfg = self.app_config.get("containers")
 
+        if containers_cfg:
+            next_port = self.primary_port
+
+            for idx, c in enumerate(containers_cfg):
+                container_name = c.get("container_name") or f"{self.app_config['name']}-c{idx+1}"
+                is_primary = (idx == 0)
+
+                container = self.ecs_task_definition.add_container(
+                    f"{self.app_config['name'].title()}Container{idx+1}",
+                    container_name=container_name,
+                    image=ecs.ContainerImage.from_registry(c["docker_image"]),
+                    logging=ecs.LogDrivers.aws_logs(stream_prefix=self.app_config["name"]),
+                    port_mappings=[ecs.PortMapping(container_port=next_port)],
+                    secrets=(
+                        {
+                            "DB_CREDS": ecs.Secret.from_secrets_manager(
+                                common_infra.storage.db_creds_secret
+                            )
+                        }
+                        if is_primary else None
+                    ),
+                )
+
+                if is_primary:
+                    self.primary_container_name = container.container_name
+
+                next_port += 1
+
+        else:
+            container = self.ecs_task_definition.add_container(
+                f"{self.app_config['name'].title()}ECSTaskContainer",
+                image=ecs.ContainerImage.from_registry(
+                    self.app_config["backend_docker_image"]
+                ),
+                logging=ecs.LogDrivers.aws_logs(stream_prefix=self.app_config["name"]),
+                port_mappings=[ecs.PortMapping(container_port=self.primary_port)],
+                secrets={
+                    "DB_CREDS": ecs.Secret.from_secrets_manager(
+                        common_infra.storage.db_creds_secret
+                    ),
+                },
+            )
+            self.primary_container_name = container.container_name
+            
         self.ecs_service = ecs.FargateService(
             self,
             f"{self.app_config['name'].title()}ECSService",

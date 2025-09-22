@@ -40,9 +40,15 @@ class AppSpecificNetworkingConstruct(Construct):
             self,
             f"{self.app_config['name'].title()}ECSTargetGroup",
             vpc=common_infra.networking.vpc,
-            port=common_infra.networking.ecs_task_port,
+            port=app_compute.primary_port,   
+            target_type=elbv2.TargetType.IP, 
         )
-        self.ecs_target_group.add_target(app_compute.ecs_service)
+        self.ecs_target_group.add_target(
+            app_compute.ecs_service.load_balancer_target(
+                container_name=app_compute.primary_container_name,
+                container_port=app_compute.primary_port,
+            )
+        )
 
         # Add backend ECS traffic rule to common ALB listener
         self.ecs_listener_rule = self.add_listener_rule(
