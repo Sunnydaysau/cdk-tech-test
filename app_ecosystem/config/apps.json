@@ -3,23 +3,50 @@
         {
             "name": "daedalus",
             "alb_priority_band": 100,
-            "backend_docker_image": "docker.io/strm/helloworld-http:latest",
             "total_task_cpu": 512,
-            "total_task_memory": 1024
+            "total_task_memory": 1024,
+            "containers": [
+                {
+                    "container_name": "daedalus-backend",
+                    "docker_image": "docker.io/strm/helloworld-http:latest",
+                    "container_cpu": 512,
+                    "container_memory": 1024
+                }
+            ]
         },
         {
             "name": "icarus",
             "alb_priority_band": 200,
-            "backend_docker_image": "docker.io/strm/helloworld-http:latest",
-            "total_task_cpu": 256,
-            "total_task_memory": 512
+            "total_task_cpu": 1024,
+            "total_task_memory": 2048,
+            "containers": [
+                {
+                    "container_name": "icarus-backend",
+                    "docker_image": "docker.io/strm/helloworld-http:latest",
+                    "container_cpu": 512,
+                    "container_memory": 1024
+                },
+                {
+                    "container_name": "icarus-otel-collector",
+                    "docker_image": "docker.io/otel/opentelemetry-collector-contrib:latest",
+                    "container_cpu": 512,
+                    "container_memory": 1024
+                },
+            ]
         },
         {
             "name": "theseus",
             "alb_priority_band": 300,
-            "backend_docker_image": "docker.io/strm/helloworld-http:latest",
-            "total_task_cpu": 1024,
-            "total_task_memory": 2048
+            "total_task_cpu": 512,
+            "total_task_memory": 1024,
+            "containers": [
+                {
+                    "container_name": "theseus-backend",
+                    "docker_image": "docker.io/strm/helloworld-http:latest",
+                    "container_cpu": 512,
+                    "container_memory": 1024
+                }
+            ]
         }
     ]
 }
